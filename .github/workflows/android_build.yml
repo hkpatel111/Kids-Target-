@@ -14,6 +14,16 @@ jobs:
     - name: Checkout Repository
       uses: actions/checkout@v4
 
+    - name: Extract Zip if Uploaded
+      run: |
+        echo "=== Checking Workspace Files ==="
+        ls -la
+        if [ -f "kids_target_source.zip" ]; then
+          echo "Extracting kids_target_source.zip..."
+          unzip -o kids_target_source.zip
+        fi
+        ls -la
+
     - name: Set up JDK 17
       uses: actions/setup-java@v5
       with:
@@ -28,38 +38,17 @@ jobs:
 
     - name: Initialize Gradle Wrapper & Build APK
       run: |
-        echo "=== Checking Project Structure ==="
-        ls -la
-        
         if [ ! -f "gradlew" ]; then
-          echo "⚠️ gradlew not found. Generating Gradle wrapper..."
+          echo "Generating Gradle wrapper..."
           gradle wrapper
         fi
-        
         chmod +x gradlew
         
-        echo "=== Starting Gradle Build (Android 10+ / API 29+) ==="
-        ./gradlew assembleDebug > build_output.log 2>&1 || BUILD_FAILED=true
-
-        if [ "$BUILD_FAILED" = true ]; then
-          echo "❌ Build failed! Printing error log:"
-          cat build_output.log
-          cp build_output.log build_error_log.txt
-          exit 1
-        else
-          echo "✅ Build completed successfully!"
-        fi
+        echo "Starting Gradle Build..."
+        ./gradlew assembleDebug
 
     - name: Upload APK Artifact
       uses: actions/upload-artifact@v4
       with:
         name: app-debug-apk
         path: app/build/outputs/apk/debug/app-debug.apk
-
-    - name: Upload Error Log if Failed
-      if: failure()
-      uses: actions/upload-artifact@v4
-      with:
-        name: build-error-log
-        path: build_error_log.txt
-        
