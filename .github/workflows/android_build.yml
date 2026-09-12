@@ -71,8 +71,21 @@ jobs:
           echo "project_dir=$project_dir" >> "$GITHUB_OUTPUT"
 
       - name: Build APK
-        run: gradle --no-daemon --stacktrace assembleDebug
+        run: |
+          set -o pipefail
+          gradle --no-daemon --stacktrace assembleDebug 2>&1 | tee build-output.log
         working-directory: ${{ steps.project.outputs.project_dir }}
+
+      - name: Upload build logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Kids-Target-build-logs
+          path: |
+            ${{ steps.project.outputs.project_dir }}/build-output.log
+            ${{ steps.project.outputs.project_dir }}/app/build/reports/
+            ${{ steps.project.outputs.project_dir }}/app/build/outputs/logs/
+          if-no-files-found: warn
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
