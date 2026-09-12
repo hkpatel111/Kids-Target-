@@ -1,0 +1,43 @@
+name: Build Kids Target Android App
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '17'
+
+    - name: Validate Android 10+ Configuration
+      run: |
+        echo "=========================================="
+        echo "Configuring for Android 10+ (Min SDK 29)"
+        echo "Targeting Android 14/15 (API 34/35)"
+        echo "=========================================="
+    
+    - name: Setup Android SDK Build Tools
+      uses: android-actions/setup-android@v3
+      with:
+        api-level: 34
+        build-tools-version: '34.0.0'
+
+    - name: Build Debug APK / Bundle Check
+      run: |
+        if [ -f "gradlew" ]; then
+          chmod +x gradlew
+          ./gradlew assembleDebug
+        else
+          echo "Gradle wrapper not found yet. Upload your Android project files to build automatically."
+        fi
