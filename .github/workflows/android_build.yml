@@ -26,36 +26,39 @@ jobs:
         packages: 'platforms;android-34 build-tools;34.0.0'
         accept-android-sdk-licenses: true
 
-    - name: Check and Generate Gradle Wrapper if Missing
+    - name: Locate Project Root & Prepare Gradle
       run: |
+        echo "Searching for build.gradle in repository..."
+        if [ -f "build.gradle" ]; then
+          echo "Project root is repository root."
+        elif [ -f "kids_target_app/build.gradle" ]; then
+          echo "Moving into kids_target_app directory..."
+          cd kids_target_app
+        else
+          # Find any folder containing build.gradle
+          PROJECT_DIR=$(dirname $(find . -name "build.gradle" -not -path "./.git/*" | head -n 1))
+          if [ "$PROJECT_DIR" != "." ] && [ -n "$PROJECT_DIR" ]; then
+            echo "Found project in $PROJECT_DIR"
+            cd "$PROJECT_DIR"
+          fi
+        fi
+
+        # Make sure gradlew exists and is executable
         if [ ! -f "gradlew" ]; then
-          echo "⚠️ gradlew not found in root, generating wrapper..."
+          echo "Generating gradle wrapper..."
           gradle wrapper
         fi
-        chmod +x gradlew
+        chmod +x ./gradlew
 
-    - name: Build Debug APK with Gradle
-      run: |
-        echo "Starting Gradle Build for Android 10+ (API 29+)..."
-        ./gradlew assembleDebug > build_output.log 2>&1 || BUILD_FAILED=true
-
-        if [ "$BUILD_FAILED" = true ]; then
-          echo "❌ Build failed! Saving log file..."
-          cp build_output.log build_error_log.txt
-          exit 1
-        else
-          echo "✅ Build completed successfully! APK generated."
-        fi
+        echo "Starting Gradle Build..."
+        ./gradlew assembleDebug > ../build_output.log 2>&1 || exit 1
+        
+        # Move APK to root for artifact collection
+        mkdir -p ../app/build/outputs/apk/debug/
+        cp app/build/outputs/apk/debug/app-debug.apk ../app/build/outputs/apk/debug/ || true
 
     - name: Upload APK Artifact
       uses: actions/upload-artifact@v4
       with:
         name: app-debug-apk
         path: app/build/outputs/apk/debug/app-debug.apk
-
-    - name: Upload Error Log if Build Fails
-      if: failure()
-      uses: actions/upload-artifact@v4
-      with:
-        name: build-error-log
-        path: build_error_log.txt
