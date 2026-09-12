@@ -39,12 +39,10 @@ jobs:
         packages: 'platforms;android-34 build-tools;34.0.0'
         accept-android-sdk-licenses: true
 
-    - name: Initialize Gradle Wrapper & Build APK
+    - name: Initialize Stable Gradle Wrapper & Build APK
       run: |
-        if [ ! -f "gradlew" ]; then
-          echo "Generating Gradle wrapper..."
-          gradle wrapper
-        fi
+        # Force stable Gradle 8.5 version to avoid AGP 8+ resolution errors
+        gradle wrapper --gradle-version 8.5
         chmod +x gradlew
         
         echo "Starting Gradle Build..."
