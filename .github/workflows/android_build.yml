@@ -14,14 +14,17 @@ jobs:
     - name: Checkout Repository
       uses: actions/checkout@v4
 
-    - name: Extract Zip if Uploaded
+    - name: Auto-Extract Any Uploaded Zip
       run: |
-        echo "=== Checking Workspace Files ==="
+        echo "=== Checking Root Files ==="
         ls -la
-        if [ -f "kids_target_source.zip" ]; then
-          echo "Extracting kids_target_source.zip..."
-          unzip -o kids_target_source.zip
-        fi
+        for zipfile in *.zip; do
+          if [ -f "$zipfile" ]; then
+            echo "Extracting $zipfile..."
+            unzip -o "$zipfile"
+          fi
+        done
+        echo "=== Files After Extraction ==="
         ls -la
 
     - name: Set up JDK 17
