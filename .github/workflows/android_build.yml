@@ -15,29 +15,44 @@ jobs:
       uses: actions/checkout@v4
 
     - name: Set up JDK 17
-      uses: actions/setup-java@v4
+      uses: actions/setup-java@v5
       with:
         distribution: 'temurin'
         java-version: '17'
 
-    - name: Validate Android 10+ Configuration
-      run: |
-        echo "=========================================="
-        echo "Configuring for Android 10+ (Min SDK 29)"
-        echo "Targeting Android 14/15 (API 34/35)"
-        echo "=========================================="
-    
-    - name: Setup Android SDK Build Tools
+    - name: Setup Android SDK
       uses: android-actions/setup-android@v3
       with:
-        api-level: 34
-        build-tools-version: '34.0.0'
+        packages: 'platforms;android-34 build-tools;34.0.0'
+        accept-android-sdk-licenses: true
 
-    - name: Build Debug APK / Bundle Check
+    - name: Build Debug APK / Gradle Check with Error Logging
+      id: build_step
       run: |
+        echo "=========================================="
+        echo "Starting Gradle Build for Android 10+"
+        echo "=========================================="
+        
         if [ -f "gradlew" ]; then
           chmod +x gradlew
-          ./gradlew assembleDebug
+          # Gradle build run karega aur saara output terminal ke sath log file me bhi save karega
+          ./gradlew assembleDebug > build_output.log 2>&1 || BUILD_FAILED=true
         else
-          echo "Gradle wrapper not found yet. Upload your Android project files to build automatically."
+          echo "Error: Gradle wrapper (gradlew) not found in the root directory!" > build_output.log
+          BUILD_FAILED=true
+        }
+
+        if [ "$BUILD_FAILED" = true ]; then
+          echo "❌ Build failed! Generating error log file..."
+          cp build_output.log build_error_log.txt
+          exit 1
+        else
+          echo "✅ Build completed successfully!"
         fi
+
+    - name: Upload Error Log if Build Fails
+      if: failure()
+      uses: actions/upload-artifact@v4
+      with:
+        name: build-error-log
+        path: build_error_log.txt
