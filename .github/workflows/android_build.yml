@@ -1,4 +1,4 @@
-name: Build Kids Target Android App
+name: Build Kids Target APK
 
 on:
   push:
@@ -7,11 +7,11 @@ on:
     branches: [ main, master ]
 
 jobs:
-  build-android:
+  build:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout Code
+    - name: Checkout Repository
       uses: actions/checkout@v4
 
     - name: Set up JDK 17
@@ -26,29 +26,27 @@ jobs:
         packages: 'platforms;android-34 build-tools;34.0.0'
         accept-android-sdk-licenses: true
 
-    - name: Build Debug APK / Gradle Check with Error Logging
-      id: build_step
+    - name: Grant execute permission for gradlew
+      run: chmod +x gradlew
+
+    - name: Build Debug APK with Gradle
       run: |
-        echo "=========================================="
-        echo "Starting Gradle Build for Android 10+"
-        echo "=========================================="
-        
-        BUILD_FAILED=false
-        if [ -f "gradlew" ]; then
-          chmod +x gradlew
-          ./gradlew assembleDebug > build_output.log 2>&1 || BUILD_FAILED=true
-        else
-          echo "Error: Gradle wrapper (gradlew) not found in the root directory!" > build_output.log
-          BUILD_FAILED=true
-        fi
+        echo "Starting Gradle Build for Android 10+ (API 29+)..."
+        ./gradlew assembleDebug > build_output.log 2>&1 || BUILD_FAILED=true
 
         if [ "$BUILD_FAILED" = true ]; then
-          echo "❌ Build failed! Generating error log file..."
+          echo "❌ Build failed! Saving log file..."
           cp build_output.log build_error_log.txt
           exit 1
         else
-          echo "✅ Build completed successfully!"
+          echo "✅ Build completed successfully! APK generated."
         fi
+
+    - name: Upload APK Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: app-debug-apk
+        path: app/build/outputs/apk/debug/app-debug.apk
 
     - name: Upload Error Log if Build Fails
       if: failure()
