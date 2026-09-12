@@ -26,9 +26,13 @@ jobs:
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
+        with:
+          # AGP 8.2.2 is compatible with Gradle 8.2.x.
+          # Do not use the runner's Gradle 9.x for this project.
+          gradle-version: '8.2.1'
 
       - name: Build APK
-        run: gradle --no-daemon assembleDebug
+        run: gradle --no-daemon --stacktrace assembleDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
