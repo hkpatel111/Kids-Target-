@@ -31,13 +31,53 @@ jobs:
           # Do not use the runner's Gradle 9.x for this project.
           gradle-version: '8.2.1'
 
+      - name: Locate Gradle project
+        id: project
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          settings_file="$(find . -type f \( \
+            -name 'settings.gradle' -o \
+            -name 'settings.gradle.kts' -o \
+            -name 'settings.gradle.dcl' \
+          \) -not -path './.git/*' -print -quit)"
+
+          # Also support the common mistake of uploading the source ZIP
+          # itself instead of extracting it into the repository.
+          if [[ -z "$settings_file" ]]; then
+            source_zip="$(find . -maxdepth 3 -type f -iname '*.zip' -print -quit || true)"
+            if [[ -n "$source_zip" ]]; then
+              rm -rf .github/.unpacked-source
+              mkdir -p .github/.unpacked-source
+              unzip -q "$source_zip" -d .github/.unpacked-source
+              settings_file="$(find .github/.unpacked-source -type f \( \
+                -name 'settings.gradle' -o \
+                -name 'settings.gradle.kts' -o \
+                -name 'settings.gradle.dcl' \
+              \) -print -quit)"
+            fi
+          fi
+
+          if [[ -z "$settings_file" ]]; then
+            echo "No Gradle settings file was found in the repository or source ZIP."
+            echo "Expected settings.gradle at the repository root or inside one project folder."
+            find . -maxdepth 4 -type f | sort
+            exit 1
+          fi
+
+          project_dir="$(dirname "$settings_file")"
+          echo "Detected Gradle project directory: $project_dir"
+          echo "project_dir=$project_dir" >> "$GITHUB_OUTPUT"
+
       - name: Build APK
         run: gradle --no-daemon --stacktrace assembleDebug
+        working-directory: ${{ steps.project.outputs.project_dir }}
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: Kids-Target-debug-apk
-          path: app/build/outputs/apk/debug/app-debug.apk
+          path: ${{ steps.project.outputs.project_dir }}/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           
