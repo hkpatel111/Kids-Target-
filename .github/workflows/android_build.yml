@@ -33,14 +33,14 @@ jobs:
         echo "Starting Gradle Build for Android 10+"
         echo "=========================================="
         
+        BUILD_FAILED=false
         if [ -f "gradlew" ]; then
           chmod +x gradlew
-          # Gradle build run karega aur saara output terminal ke sath log file me bhi save karega
           ./gradlew assembleDebug > build_output.log 2>&1 || BUILD_FAILED=true
         else
           echo "Error: Gradle wrapper (gradlew) not found in the root directory!" > build_output.log
           BUILD_FAILED=true
-        }
+        fi
 
         if [ "$BUILD_FAILED" = true ]; then
           echo "❌ Build failed! Generating error log file..."
